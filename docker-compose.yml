@@ -1,0 +1,204 @@
+name: energyiq
+
+x-node-env: &node-env
+  NODE_ENV: development
+  DATABASE_URL: postgresql://energyiq:energyiq@postgres:5432/energyiq?schema=public
+  REDIS_URL: redis://redis:6379
+  QDRANT_URL: http://qdrant:6333
+  JWT_ACCESS_SECRET: local-access-secret-change-me
+  JWT_REFRESH_SECRET: local-refresh-secret-change-me
+  ACCESS_TOKEN_TTL: 15m
+  REFRESH_TOKEN_TTL_DAYS: 30
+  FRONTEND_URL: http://localhost:5173
+  AUTH_SERVICE_URL: http://auth-service:4101
+  ORGANIZATION_SERVICE_URL: http://organization-service:4102
+  DEVICE_SERVICE_URL: http://device-service:4103
+  ANALYTICS_SERVICE_URL: http://analytics-service:4104
+  FORECAST_SERVICE_URL: http://forecast-service:4105
+  NOTIFICATION_SERVICE_URL: http://notification-service:4106
+  AI_SERVICE_URL: http://ai-service:8000
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: energyiq
+      POSTGRES_PASSWORD: energyiq
+      POSTGRES_DB: energyiq
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U energyiq -d energyiq"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  migrate:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    environment: *node-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "npm --workspace @energyiq/database run generate
+      && npx prisma db push --schema packages/database/prisma/schema.prisma
+      && npm --workspace @energyiq/database run seed"
+    restart: "no"
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    environment:
+      <<: *node-env
+      PORT: 4101
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    ports:
+      - "4101:4101"
+
+  organization-service:
+    build:
+      context: .
+      dockerfile: services/organization-service/Dockerfile
+    environment:
+      <<: *node-env
+      PORT: 4102
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "4102:4102"
+
+  device-service:
+    build:
+      context: .
+      dockerfile: services/device-service/Dockerfile
+    environment:
+      <<: *node-env
+      PORT: 4103
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    ports:
+      - "4103:4103"
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: services/analytics-service/Dockerfile
+    environment:
+      <<: *node-env
+      PORT: 4104
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    ports:
+      - "4104:4104"
+
+  forecast-service:
+    build:
+      context: .
+      dockerfile: services/forecast-service/Dockerfile
+    environment:
+      <<: *node-env
+      PORT: 4105
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    ports:
+      - "4105:4105"
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    environment:
+      <<: *node-env
+      PORT: 4106
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    ports:
+      - "4106:4106"
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: ai-service/Dockerfile
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: energyiq_knowledge
+    depends_on:
+      - qdrant
+    ports:
+      - "8000:8000"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    environment:
+      <<: *node-env
+      API_GATEWAY_PORT: 8080
+    depends_on:
+      - auth-service
+      - organization-service
+      - device-service
+      - analytics-service
+      - forecast-service
+      - notification-service
+      - ai-service
+    ports:
+      - "8081:8080"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    depends_on:
+      - api-gateway
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres-data:
+  redis-data:
+  qdrant-data:

@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: energyiq-migrations
+  namespace: energyiq
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrations
+          image: energyiq/auth-service:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - npm --workspace @energyiq/database run generate && npx prisma db push --schema packages/database/prisma/schema.prisma && npm --workspace @energyiq/database run seed
+          envFrom:
+            - configMapRef: { name: energyiq-config }
+            - secretRef: { name: energyiq-secrets }

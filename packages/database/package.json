@@ -1,0 +1,26 @@
+{
+  "name": "@energyiq/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "seed": "tsx src/seed.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.1",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "prisma": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma",
+    "seed": "tsx src/seed.ts"
+  }
+}

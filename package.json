@@ -1,0 +1,37 @@
+{
+  "name": "energyiq",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "EnergyIQ AI-powered energy intelligence SaaS platform.",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace @energyiq/frontend run dev",
+    "dev:services": "npm run dev --workspaces --if-present --include-workspace-root=false",
+    "build": "npm run build:packages && npm run build:services && npm --workspace @energyiq/frontend run build",
+    "build:packages": "npm --workspace @energyiq/shared run build && npm --workspace @energyiq/service-kit run build",
+    "build:services": "npm --workspace @energyiq/api-gateway run build && npm --workspace @energyiq/auth-service run build && npm --workspace @energyiq/organization-service run build && npm --workspace @energyiq/device-service run build && npm --workspace @energyiq/analytics-service run build && npm --workspace @energyiq/forecast-service run build && npm --workspace @energyiq/notification-service run build",
+    "typecheck": "npm run typecheck:packages && npm run typecheck:services && npm --workspace @energyiq/frontend run typecheck",
+    "typecheck:packages": "npm --workspace @energyiq/shared run typecheck && npm --workspace @energyiq/shared run build && npm --workspace @energyiq/service-kit run typecheck && npm --workspace @energyiq/service-kit run build && npm --workspace @energyiq/database run typecheck",
+    "typecheck:services": "npm --workspace @energyiq/api-gateway run typecheck && npm --workspace @energyiq/auth-service run typecheck && npm --workspace @energyiq/organization-service run typecheck && npm --workspace @energyiq/device-service run typecheck && npm --workspace @energyiq/analytics-service run typecheck && npm --workspace @energyiq/forecast-service run typecheck && npm --workspace @energyiq/notification-service run typecheck",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "npm --workspace @energyiq/database run generate",
+    "db:migrate": "npm --workspace @energyiq/database run migrate",
+    "db:seed": "npm --workspace @energyiq/database run seed"
+  },
+  "engines": {
+    "node": ">=20.11.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "eslint": "^9.16.0",
+    "prettier": "^3.4.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: energyiq-config
+  namespace: energyiq
+data:
+  NODE_ENV: production
+  REDIS_URL: redis://redis:6379
+  QDRANT_URL: http://qdrant:6333
+  QDRANT_COLLECTION: energyiq_knowledge
+  ACCESS_TOKEN_TTL: 15m
+  REFRESH_TOKEN_TTL_DAYS: "30"
+  FRONTEND_URL: https://energyiq.example.com
+  AUTH_SERVICE_URL: http://auth-service:4101
+  ORGANIZATION_SERVICE_URL: http://organization-service:4102
+  DEVICE_SERVICE_URL: http://device-service:4103
+  ANALYTICS_SERVICE_URL: http://analytics-service:4104
+  FORECAST_SERVICE_URL: http://forecast-service:4105
+  NOTIFICATION_SERVICE_URL: http://notification-service:4106
+  AI_SERVICE_URL: http://ai-service:8000

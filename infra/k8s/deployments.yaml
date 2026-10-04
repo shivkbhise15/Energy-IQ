@@ -1,0 +1,232 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: energyiq
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: api-gateway }
+  template:
+    metadata:
+      labels: { app: api-gateway }
+    spec:
+      containers:
+        - name: api-gateway
+          image: energyiq/api-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 8080 }]
+          envFrom:
+            - configMapRef: { name: energyiq-config }
+            - secretRef: { name: energyiq-secrets }
+          readinessProbe: { httpGet: { path: /health/ready, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health/live, port: 8080 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 512Mi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: energyiq
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: auth-service }
+  template:
+    metadata:
+      labels: { app: auth-service }
+    spec:
+      containers:
+        - name: auth-service
+          image: energyiq/auth-service:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 4101 }]
+          env:
+            - { name: PORT, value: "4101" }
+          envFrom:
+            - configMapRef: { name: energyiq-config }
+            - secretRef: { name: energyiq-secrets }
+          readinessProbe: { httpGet: { path: /health/ready, port: 4101 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health/live, port: 4101 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 150m, memory: 256Mi }, limits: { cpu: 750m, memory: 768Mi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: organization-service
+  namespace: energyiq
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: organization-service }
+  template:
+    metadata:
+      labels: { app: organization-service }
+    spec:
+      containers:
+        - name: organization-service
+          image: energyiq/organization-service:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 4102 }]
+          env:
+            - { name: PORT, value: "4102" }
+          envFrom:
+            - configMapRef: { name: energyiq-config }
+            - secretRef: { name: energyiq-secrets }
+          readinessProbe: { httpGet: { path: /health/ready, port: 4102 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health/live, port: 4102 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 100m, memory: 192Mi }, limits: { cpu: 600m, memory: 768Mi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: device-service
+  namespace: energyiq
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: device-service }
+  template:
+    metadata:
+      labels: { app: device-service }
+    spec:
+      containers:
+        - name: device-service
+          image: energyiq/device-service:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 4103 }]
+          env:
+            - { name: PORT, value: "4103" }
+          envFrom:
+            - configMapRef: { name: energyiq-config }
+            - secretRef: { name: energyiq-secrets }
+          readinessProbe: { httpGet: { path: /health/ready, port: 4103 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health/live, port: 4103 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: "1", memory: 1Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: energyiq
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: analytics-service }
+  template:
+    metadata:
+      labels: { app: analytics-service }
+    spec:
+      containers:
+        - name: analytics-service
+          image: energyiq/analytics-service:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 4104 }]
+          env:
+            - { name: PORT, value: "4104" }
+          envFrom:
+            - configMapRef: { name: energyiq-config }
+            - secretRef: { name: energyiq-secrets }
+          readinessProbe: { httpGet: { path: /health/ready, port: 4104 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health/live, port: 4104 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: "1", memory: 1Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forecast-service
+  namespace: energyiq
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: forecast-service }
+  template:
+    metadata:
+      labels: { app: forecast-service }
+    spec:
+      containers:
+        - name: forecast-service
+          image: energyiq/forecast-service:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 4105 }]
+          env:
+            - { name: PORT, value: "4105" }
+          envFrom:
+            - configMapRef: { name: energyiq-config }
+            - secretRef: { name: energyiq-secrets }
+          readinessProbe: { httpGet: { path: /health/ready, port: 4105 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health/live, port: 4105 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: "1", memory: 1Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: energyiq
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: notification-service }
+  template:
+    metadata:
+      labels: { app: notification-service }
+    spec:
+      containers:
+        - name: notification-service
+          image: energyiq/notification-service:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 4106 }]
+          env:
+            - { name: PORT, value: "4106" }
+          envFrom:
+            - configMapRef: { name: energyiq-config }
+            - secretRef: { name: energyiq-secrets }
+          readinessProbe: { httpGet: { path: /health/ready, port: 4106 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health/live, port: 4106 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 100m, memory: 192Mi }, limits: { cpu: 600m, memory: 768Mi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+  namespace: energyiq
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: ai-service }
+  template:
+    metadata:
+      labels: { app: ai-service }
+    spec:
+      containers:
+        - name: ai-service
+          image: energyiq/ai-service:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 8000 }]
+          envFrom:
+            - configMapRef: { name: energyiq-config }
+          readinessProbe: { httpGet: { path: /health/ready, port: 8000 }, initialDelaySeconds: 20, periodSeconds: 15 }
+          livenessProbe: { httpGet: { path: /health/live, port: 8000 }, initialDelaySeconds: 30, periodSeconds: 20 }
+          resources: { requests: { cpu: 500m, memory: 1Gi }, limits: { cpu: "2", memory: 4Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: energyiq
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: frontend }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: energyiq/frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 80 }]
+          readinessProbe: { httpGet: { path: /, port: 80 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /, port: 80 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { cpu: 300m, memory: 256Mi } }

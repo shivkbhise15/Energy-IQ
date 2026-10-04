@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 42 24% 97%;
+  --foreground: 210 14% 11%;
+  --panel: 0 0% 100%;
+  --panel-foreground: 210 14% 11%;
+  --muted: 210 20% 94%;
+  --muted-foreground: 215 10% 42%;
+  --border: 210 18% 86%;
+  --primary: 173 72% 28%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 31 92% 56%;
+  --accent-foreground: 210 14% 11%;
+  --danger: 358 75% 52%;
+  --warning: 42 91% 48%;
+  --success: 154 64% 36%;
+}
+
+.dark {
+  --background: 210 11% 9%;
+  --foreground: 42 22% 94%;
+  --panel: 210 10% 13%;
+  --panel-foreground: 42 22% 94%;
+  --muted: 210 9% 18%;
+  --muted-foreground: 214 11% 68%;
+  --border: 210 9% 24%;
+  --primary: 173 66% 42%;
+  --primary-foreground: 210 14% 8%;
+  --accent: 35 92% 58%;
+  --accent-foreground: 210 14% 8%;
+  --danger: 358 73% 58%;
+  --warning: 44 91% 58%;
+  --success: 154 56% 48%;
+}
+
+html {
+  background: hsl(var(--background));
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+::selection {
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+}

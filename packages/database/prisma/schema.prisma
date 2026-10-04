@@ -1,0 +1,412 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ORG_ADMIN
+  FACILITY_MANAGER
+  TECHNICIAN
+  VIEWER
+}
+
+enum DeviceType {
+  HVAC
+  COMPRESSOR
+  MOTOR
+  GENERATOR
+  LIGHTING
+  SERVER_RACK
+  ELEVATOR
+  WATER_PUMP
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+  DECOMMISSIONED
+}
+
+enum SensorType {
+  VOLTAGE
+  CURRENT
+  POWER
+  ENERGY_CONSUMPTION
+  TEMPERATURE
+  HUMIDITY
+}
+
+enum AlertLevel {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum RecommendationImpact {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ForecastHorizon {
+  NEXT_HOUR
+  NEXT_DAY
+  NEXT_WEEK
+  NEXT_MONTH
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+model User {
+  id                 String               @id @default(uuid()) @db.Uuid
+  organizationId     String?              @db.Uuid
+  organization       Organization?        @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  email              String               @unique
+  name               String
+  passwordHash       String
+  role               Role                 @default(VIEWER)
+  isActive           Boolean              @default(true)
+  lastLoginAt        DateTime?
+  refreshTokens      RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([organizationId, role])
+  @@index([email])
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  createdByIp String?
+
+  @@index([userId, expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model Organization {
+  id              String              @id @default(uuid()) @db.Uuid
+  name            String
+  industry        String
+  timezone        String              @default("UTC")
+  users           User[]
+  buildings       Building[]
+  devices         Device[]
+  alerts          Alert[]
+  recommendations Recommendation[]
+  forecasts       Forecast[]
+  reports         MaintenanceReport[]
+  incidents       Incident[]
+  auditLogs       AuditLog[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([name])
+  @@index([industry])
+}
+
+model Building {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  address        String
+  city           String
+  country        String
+  areaSqFt       Float
+  floors         Floor[]
+  zones          Zone[]
+  rooms          Room[]
+  devices        Device[]
+  alerts         Alert[]
+  forecasts      Forecast[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId, city])
+}
+
+model Floor {
+  id         String   @id @default(uuid()) @db.Uuid
+  buildingId String   @db.Uuid
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  label      String
+  level      Int
+  zones      Zone[]
+  rooms      Room[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([buildingId, level])
+}
+
+model Zone {
+  id         String   @id @default(uuid()) @db.Uuid
+  buildingId String   @db.Uuid
+  floorId    String?  @db.Uuid
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  floor      Floor?   @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  name       String
+  rooms      Room[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([buildingId, name])
+  @@index([floorId])
+}
+
+model Room {
+  id         String   @id @default(uuid()) @db.Uuid
+  buildingId String   @db.Uuid
+  floorId    String?  @db.Uuid
+  zoneId     String?  @db.Uuid
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  floor      Floor?   @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  zone       Zone?    @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  name       String
+  devices    Device[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([buildingId, name])
+  @@index([floorId])
+  @@index([zoneId])
+}
+
+model Device {
+  id               String         @id @default(uuid()) @db.Uuid
+  organizationId   String         @db.Uuid
+  buildingId       String         @db.Uuid
+  roomId           String?        @db.Uuid
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  building         Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  room             Room?          @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  name             String
+  type             DeviceType
+  manufacturer     String
+  modelNumber      String
+  installationDate DateTime
+  status           DeviceStatus   @default(ONLINE)
+  sensors          Sensor[]
+  alerts           Alert[]
+  recommendations  Recommendation[]
+  forecasts        Forecast[]
+  reports          MaintenanceReport[]
+  incidents        Incident[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([buildingId, name])
+  @@index([organizationId, type, status])
+  @@index([buildingId, status])
+}
+
+model Sensor {
+  id                  String          @id @default(uuid()) @db.Uuid
+  deviceId            String          @db.Uuid
+  device              Device          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  type                SensorType
+  unit                String
+  samplingRateSeconds Int             @default(60)
+  calibrationOffset   Float           @default(0)
+  metadata            Json            @default("{}")
+  readings            SensorReading[]
+  alerts              Alert[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([deviceId, type])
+}
+
+model SensorReading {
+  id        String   @id @default(uuid()) @db.Uuid
+  sensorId  String   @db.Uuid
+  sensor    Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  timestamp DateTime @db.Timestamptz(6)
+  value     Float
+  createdAt DateTime @default(now())
+
+  @@unique([sensorId, timestamp])
+  @@index([sensorId, timestamp(sort: Desc)])
+  @@index([timestamp(sort: Desc)])
+}
+
+model Alert {
+  id              String        @id @default(uuid()) @db.Uuid
+  organizationId  String        @db.Uuid
+  buildingId      String?       @db.Uuid
+  deviceId        String?       @db.Uuid
+  sensorId        String?       @db.Uuid
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  building        Building?     @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  device          Device?       @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  sensor          Sensor?       @relation(fields: [sensorId], references: [id], onDelete: SetNull)
+  level           AlertLevel
+  status          AlertStatus   @default(OPEN)
+  title           String
+  description     String
+  anomalyScore    Float?
+  confidenceScore Float?
+  acknowledgedAt  DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId, status, level])
+  @@index([buildingId, createdAt(sort: Desc)])
+  @@index([deviceId, createdAt(sort: Desc)])
+}
+
+model Recommendation {
+  id             String               @id @default(uuid()) @db.Uuid
+  organizationId String               @db.Uuid
+  deviceId       String?              @db.Uuid
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  device         Device?              @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  title          String
+  narrative      String
+  impact         RecommendationImpact
+  estimatedSavingsUsd Float?
+  status         String               @default("OPEN")
+  qdrantPointId  String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([organizationId, impact, status])
+  @@index([deviceId])
+}
+
+model Forecast {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @db.Uuid
+  buildingId     String?         @db.Uuid
+  deviceId       String?         @db.Uuid
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  building       Building?       @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  device         Device?         @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  horizon        ForecastHorizon
+  targetDate     DateTime        @db.Timestamptz(6)
+  predictedKwh   Float
+  predictedCost  Float?
+  confidenceLow  Float?
+  confidenceHigh Float?
+  modelVersion   String
+  createdAt      DateTime        @default(now())
+
+  @@index([organizationId, horizon, targetDate(sort: Desc)])
+  @@index([buildingId, targetDate(sort: Desc)])
+  @@index([deviceId, targetDate(sort: Desc)])
+}
+
+model MaintenanceReport {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  deviceId       String?      @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  device         Device?      @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  title          String
+  body           String
+  qdrantPointId  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([deviceId])
+}
+
+model Incident {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  deviceId       String?      @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  device         Device?      @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  title          String
+  severity       AlertLevel
+  summary        String
+  rootCause      String?
+  resolution     String?
+  qdrantPointId  String?
+  occurredAt     DateTime     @db.Timestamptz(6)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, severity, occurredAt(sort: Desc)])
+  @@index([deviceId])
+}
+
+model AuditLog {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String?       @db.Uuid
+  actorUserId    String?       @db.Uuid
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  actor          User?         @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  action         String
+  entityType     String
+  entityId       String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json          @default("{}")
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@index([entityType, entityId])
+}
+
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @db.Uuid
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   NotificationChannel
+  status    NotificationStatus  @default(PENDING)
+  title     String
+  body      String
+  payload   Json                @default("{}")
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([userId, status, createdAt(sort: Desc)])
+}
